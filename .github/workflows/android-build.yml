@@ -44,12 +44,15 @@ jobs:
         run: npx expo prebuild --platform android --clean --no-install
 
       - name: Decode Android keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          mkdir -p android/app
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            mkdir -p android/app
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          else
+            echo "No keystore secret provided, continuing with default signing."
+          fi
 
       - name: Build direct release AAB and APK
         run: |
@@ -66,14 +69,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: monojot-release-aab
-          path: android/app/build/outputs/bundle/release/*.aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
           name: monojot-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
 
       - name: Publish APK to GitHub Release
@@ -81,8 +84,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/bundle/release/app-release.aab
           name: Release ${{ github.ref_name }}
           generate_release_notes: true
         env:
