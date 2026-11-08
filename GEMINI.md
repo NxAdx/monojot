@@ -58,3 +58,4 @@ MonoJot is an intentional, brutalist-minimalist scratchpad built for **single-th
 > * `.agents/` (rules and skills)
 > * Keystores (`*.keystore`, `*.jks`, `keystore_base64.txt`)
 > * `google-services.json`
+
