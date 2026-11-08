@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme, useThemeStore, NightMode } from '../store/themeStore';
 import { useJotStore } from '../store/jotStore';
+import { glanceService } from '../services/glanceService';
 
 export default function ScratchpadScreen() {
   const router = useRouter();
@@ -59,10 +60,18 @@ export default function ScratchpadScreen() {
     setMenuVisible(false);
   };
 
-  const handleGlancePress = () => {
+  const handleGlancePress = async () => {
     Haptics.selectionAsync();
     const willBeActive = !isGlanceActive;
-    toggleGlance();
+    if (willBeActive) {
+      const hasPerm = await glanceService.ensurePermissions();
+      if (!hasPerm) {
+        setGlanceFeedback('Permission required');
+        setTimeout(() => setGlanceFeedback(null), 2000);
+        return;
+      }
+    }
+    await toggleGlance();
     setGlanceFeedback(willBeActive ? 'Live on Lock Screen' : 'Lock Screen Paused');
     setTimeout(() => {
       setGlanceFeedback(null);
@@ -404,8 +413,11 @@ export default function ScratchpadScreen() {
                   </View>
                   <Switch
                     value={isGlanceActive}
-                    onValueChange={() => {
+                    onValueChange={async () => {
                       Haptics.selectionAsync();
+                      if (!isGlanceActive) {
+                        await glanceService.ensurePermissions();
+                      }
                       toggleGlance();
                     }}
                     trackColor={{ false: colors.strokeDim, true: colors.ink }}
