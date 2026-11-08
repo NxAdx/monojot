@@ -22,7 +22,7 @@ export const themes: { light: ThemeColors; dark: ThemeColors } = {
     bgRaised: '#FFFFFF', // Clean elevated squircle card
     bgDeep: '#EFEFF2',
     stroke: '#111113',
-    strokeDim: '#E5E5EA',
+    strokeDim: '#E0E0E6', // Crisp razor-sharp vector line against warm canvas
     ink: '#111113',      // Pure charcoal/black
     inkMid: '#48484A',
     inkDim: '#8E8E93',
@@ -30,7 +30,7 @@ export const themes: { light: ThemeColors; dark: ThemeColors } = {
     accentText: '#FFFFFF',
     doneBtn: '#111113',
     doneBtnText: '#FFFFFF',
-    shadow: '#D1D1D6',
+    shadow: 'transparent',
   },
   dark: {
     bg: '#000000',       // True pitch OLED black
@@ -58,20 +58,9 @@ export const sharedTokens = {
   },
   spacing: [0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64] as const,
   shadow: {
-    gentle: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
-      elevation: 2,
-    },
-    donePill: {
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-      elevation: 4,
-    }
+    // Zero-elevation flat minimalist architecture — eliminates blurry Android shadow halos
+    gentle: {},
+    donePill: {},
   }
 };
 

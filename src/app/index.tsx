@@ -21,7 +21,7 @@ import { useJotStore } from '../store/jotStore';
 export default function ScratchpadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors, radius, shadow, isDark } = useTheme();
+  const { colors, radius, isDark } = useTheme();
   const { nightMode, setNightMode } = useThemeStore();
 
   const activeText = useJotStore((s) => s.activeText);
@@ -32,6 +32,7 @@ export default function ScratchpadScreen() {
   const archivedCount = useJotStore((s) => s.archivedJots.length);
 
   const [menuVisible, setMenuVisible] = useState(false);
+  const [glanceFeedback, setGlanceFeedback] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   const hasText = activeText.trim().length > 0;
@@ -56,6 +57,16 @@ export default function ScratchpadScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveText('');
     setMenuVisible(false);
+  };
+
+  const handleGlancePress = () => {
+    Haptics.selectionAsync();
+    const willBeActive = !isGlanceActive;
+    toggleGlance();
+    setGlanceFeedback(willBeActive ? 'Live on Lock Screen' : 'Lock Screen Paused');
+    setTimeout(() => {
+      setGlanceFeedback(null);
+    }, 1800);
   };
 
   const s = useMemo(
@@ -117,7 +128,7 @@ export default function ScratchpadScreen() {
           borderColor: colors.strokeDim,
           padding: 22,
           marginBottom: 12,
-          ...shadow.gentle,
+          overflow: 'hidden',
         },
         textInput: {
           flex: 1,
@@ -130,14 +141,20 @@ export default function ScratchpadScreen() {
           justifyContent: 'flex-end',
           alignItems: 'center',
           paddingTop: 8,
+          gap: 8,
         },
-        statusRing: {
-          width: 14,
-          height: 14,
-          borderRadius: 7,
-          borderWidth: 1.5,
-          borderColor: colors.strokeDim,
-          opacity: 0.6,
+        glanceFeedbackText: {
+          fontSize: 11,
+          fontWeight: '500',
+          color: colors.inkDim,
+          letterSpacing: -0.1,
+        },
+        statusRingBtn: {
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
         doneContainer: {
           paddingBottom: Platform.OS === 'android' ? 4 : 0,
@@ -149,7 +166,6 @@ export default function ScratchpadScreen() {
           backgroundColor: colors.doneBtn,
           justifyContent: 'center',
           alignItems: 'center',
-          ...shadow.donePill,
         },
         donePillDisabled: {
           opacity: 0.35,
@@ -257,7 +273,7 @@ export default function ScratchpadScreen() {
           color: colors.inkDim,
         },
       }),
-    [colors, insets, radius, shadow, fontSize]
+    [colors, insets, radius, fontSize]
   );
 
   return (
@@ -300,7 +316,37 @@ export default function ScratchpadScreen() {
           selectionColor={colors.ink}
         />
         <View style={s.cardFooter}>
-          <View style={s.statusRing} />
+          {glanceFeedback && (
+            <Text style={s.glanceFeedbackText}>{glanceFeedback}</Text>
+          )}
+          <Pressable
+            onPress={handleGlancePress}
+            hitSlop={12}
+            accessibilityLabel={
+              isGlanceActive
+                ? 'Lock Screen Glance is Active (tap to pause)'
+                : 'Lock Screen Glance is Paused (tap to activate)'
+            }
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              s.statusRingBtn,
+              pressed && { opacity: 0.5, transform: [{ scale: 0.92 }] },
+            ]}
+          >
+            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+              <Circle
+                cx={8}
+                cy={8}
+                r={6.5}
+                stroke={isGlanceActive ? colors.ink : colors.strokeDim}
+                strokeWidth={1.4}
+                strokeDasharray={isGlanceActive ? undefined : '2.5, 2'}
+              />
+              {isGlanceActive && (
+                <Circle cx={8} cy={8} r={3} fill={colors.ink} />
+              )}
+            </Svg>
+          </Pressable>
         </View>
       </View>
 

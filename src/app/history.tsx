@@ -11,7 +11,7 @@ import { useJotStore, ArchivedJot } from '../store/jotStore';
 export default function HistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors, radius, shadow } = useTheme();
+  const { colors, radius } = useTheme();
 
   const archivedJots = useJotStore((s) => s.archivedJots);
   const restoreJot = useJotStore((s) => s.restoreJot);
@@ -74,7 +74,7 @@ export default function HistoryScreen() {
           borderColor: colors.strokeDim,
           padding: 18,
           marginBottom: 12,
-          ...shadow.gentle,
+          overflow: 'hidden',
         },
         cardContent: {
           marginBottom: 12,
@@ -125,7 +125,7 @@ export default function HistoryScreen() {
           color: colors.inkDim,
         },
       }),
-    [colors, insets, radius, shadow]
+    [colors, insets, radius]
   );
 
   return (
