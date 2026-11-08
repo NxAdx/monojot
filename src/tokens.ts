@@ -34,8 +34,8 @@ export const themes: { light: ThemeColors; dark: ThemeColors } = {
   },
   dark: {
     bg: '#000000',       // True pitch OLED black
-    bgRaised: '#121214', // Deep elevated card
-    bgDeep: '#08080A',
+    bgRaised: '#1C1C1E', // Apple-grade elevated dark card (contrast against pitch black)
+    bgDeep: '#0A0A0C',
     stroke: '#FFFFFF',
     strokeDim: '#2C2C2E',
     ink: '#FFFFFF',      // Pure crisp white
