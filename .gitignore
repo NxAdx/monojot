@@ -8,11 +8,9 @@ node_modules/
 dist/
 web-build/
 
-# Native builds
-android/app/build/
-android/.gradle/
-android/build/
-android/app/.cxx/
+# Native builds (Generated via expo prebuild in CI)
+android/
+ios/
 *.apk
 *.aab
 
