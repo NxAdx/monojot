@@ -74,7 +74,6 @@ export default function HistoryScreen() {
           borderColor: colors.strokeDim,
           padding: 18,
           marginBottom: 12,
-          overflow: 'hidden',
         },
         cardContent: {
           marginBottom: 12,

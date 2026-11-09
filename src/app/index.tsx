@@ -57,6 +57,7 @@ export default function ScratchpadScreen() {
     if (!hasText) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveText('');
+    glanceService.clearGlance();
     setMenuVisible(false);
   };
 
@@ -137,7 +138,6 @@ export default function ScratchpadScreen() {
           borderColor: colors.strokeDim,
           padding: 22,
           marginBottom: 12,
-          overflow: 'hidden',
         },
         textInput: {
           flex: 1,
@@ -177,7 +177,7 @@ export default function ScratchpadScreen() {
           alignItems: 'center',
         },
         donePillDisabled: {
-          opacity: 0.35,
+          opacity: 0.22,
         },
         donePillPressed: {
           opacity: 0.88,
@@ -203,8 +203,8 @@ export default function ScratchpadScreen() {
           paddingTop: 12,
           paddingBottom: Math.max(insets.bottom, 24),
           paddingHorizontal: 22,
-          borderWidth: 1,
-          borderColor: colors.strokeDim,
+          borderTopWidth: 1,
+          borderTopColor: colors.strokeDim,
         },
         handleBar: {
           width: 36,

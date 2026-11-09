@@ -3,8 +3,9 @@ import * as Notifications from 'expo-notifications';
 
 const NOTIFICATION_ID = 'monojot-active-glance';
 const CHANNEL_ID = 'monojot-glance-channel';
+const FALLBACK_CHANNEL_ID = 'expo_notifications_fallback_notification_channel';
 
-// Configure notification behavior for foreground handling
+// Configure notification behavior for foreground presentation
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -17,7 +18,7 @@ Notifications.setNotificationHandler({
 
 export const glanceService = {
   /**
-   * Check and request Android notification permissions (required for Android 13+)
+   * Check and request Android notification permissions (mandatory on Android 13+ / API 33+)
    */
   ensurePermissions: async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
@@ -31,30 +32,37 @@ export const glanceService = {
       });
       return newStatus === 'granted';
     } catch (e) {
-      console.warn('[GlanceService] Permission request failed:', e);
+      console.warn('[GlanceService] ensurePermissions failed:', e);
       return false;
     }
   },
 
   /**
-   * Ensure Android notification channel and actions are initialized with maximum priority
-   * and public lock screen visibility.
+   * Ensure Android notification channels and category actions are initialized
+   * with maximum priority and public lock screen visibility.
    */
   init: async (): Promise<void> => {
     if (Platform.OS !== 'android') return;
     try {
-      // 1. Configure the high-priority lock screen channel
-      await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      const channelConfig: Notifications.NotificationChannelInput = {
         name: 'Active Thought Glance',
-        description: 'Sticky lock screen card for your active thought',
+        description: 'Persistent lock screen card for your active thought',
         importance: Notifications.AndroidImportance.MAX,
         enableVibrate: false,
         showBadge: false,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         bypassDnd: true,
-      });
+        sound: null,
+      };
 
-      // 2. Register lock screen action button: [Done]
+      // Configure both custom channel AND expo fallback channel to guarantee
+      // MAX priority and PUBLIC lockscreen visibility regardless of trigger type
+      await Promise.all([
+        Notifications.setNotificationChannelAsync(CHANNEL_ID, channelConfig),
+        Notifications.setNotificationChannelAsync(FALLBACK_CHANNEL_ID, channelConfig),
+      ]);
+
+      // Register interactive lock screen action button: [Done]
       await Notifications.setNotificationCategoryAsync('glance_category', [
         {
           identifier: 'done_action',
@@ -65,7 +73,7 @@ export const glanceService = {
         },
       ]);
 
-      // 3. Request permissions on initial startup
+      // Pre-flight check permissions on initial startup
       await glanceService.ensurePermissions();
     } catch (e) {
       console.warn('[GlanceService] init channel error:', e);
@@ -73,12 +81,14 @@ export const glanceService = {
   },
 
   /**
-   * Post or update the sticky ongoing lock screen notification
+   * Post or update the sticky ongoing lock screen notification.
+   * Uses trigger: null for immediate presentation without AlarmManager dependency.
    */
   postGlance: async (text: string): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
 
-    if (!text || !text.trim()) {
+    const trimmed = text?.trim();
+    if (!trimmed) {
       await glanceService.clearGlance();
       return true;
     }
@@ -90,14 +100,12 @@ export const glanceService = {
     }
 
     try {
-      // Dismiss previous to guarantee clean lock screen display
-      await Notifications.dismissNotificationAsync(NOTIFICATION_ID).catch(() => {});
-
       await Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_ID,
         content: {
           title: 'MonoJot',
-          body: text.trim(),
+          body: trimmed,
+          subtitle: 'Active Thought',
           sticky: true,
           autoDismiss: false,
           priority: Notifications.AndroidNotificationPriority.MAX,
@@ -105,9 +113,7 @@ export const glanceService = {
           color: '#000000',
           data: { action: 'open_active_jot' },
         },
-        trigger: {
-          channelId: CHANNEL_ID,
-        },
+        trigger: null, // CRITICAL: Immediate delivery without SchedulableTrigger exception!
       });
       return true;
     } catch (e) {

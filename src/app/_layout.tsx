@@ -14,7 +14,7 @@ export default function RootLayout() {
   useEffect(() => {
     initDB();
 
-    // Listen for 1-tap [Done] actions from the lock screen notification
+    // 1. Listen for 1-tap [Done] actions from the lock screen notification while running
     const subscription = Notifications.addNotificationResponseReceivedListener(
       async (response) => {
         if (response.actionIdentifier === 'done_action') {
@@ -23,6 +23,14 @@ export default function RootLayout() {
         }
       }
     );
+
+    // 2. Handle 1-tap [Done] actions if app was launched directly from notification action
+    Notifications.getLastNotificationResponseAsync().then(async (response) => {
+      if (response && response.actionIdentifier === 'done_action') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await useJotStore.getState().completeActiveJot();
+      }
+    });
 
     return () => {
       subscription.remove();

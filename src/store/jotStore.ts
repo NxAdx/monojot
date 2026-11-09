@@ -24,6 +24,7 @@ interface JotState {
 
 // In Expo SDK 51 / expo-sqlite v14, openDatabaseSync provides synchronous, zero-lag SQLite access
 let dbInstance: SQLite.SQLiteDatabase | null = null;
+let glanceDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getDb(): SQLite.SQLiteDatabase {
   if (!dbInstance) {
@@ -105,8 +106,14 @@ export const useJotStore = create<JotState>((set, get) => ({
 
     const { isGlanceActive } = get();
     if (isGlanceActive) {
+      if (glanceDebounceTimer) {
+        clearTimeout(glanceDebounceTimer);
+        glanceDebounceTimer = null;
+      }
       if (text.trim()) {
-        glanceService.postGlance(text.trim());
+        glanceDebounceTimer = setTimeout(() => {
+          glanceService.postGlance(text.trim());
+        }, 300);
       } else {
         glanceService.clearGlance();
       }
@@ -114,6 +121,11 @@ export const useJotStore = create<JotState>((set, get) => ({
   },
 
   toggleGlance: async () => {
+    if (glanceDebounceTimer) {
+      clearTimeout(glanceDebounceTimer);
+      glanceDebounceTimer = null;
+    }
+
     const { isGlanceActive, activeText } = get();
     const nextState = !isGlanceActive;
     set({ isGlanceActive: nextState });
@@ -136,6 +148,11 @@ export const useJotStore = create<JotState>((set, get) => ({
   },
 
   completeActiveJot: async () => {
+    if (glanceDebounceTimer) {
+      clearTimeout(glanceDebounceTimer);
+      glanceDebounceTimer = null;
+    }
+
     const { activeText } = get();
     if (!activeText.trim()) return;
 
