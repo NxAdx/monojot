@@ -1,4 +1,4 @@
-# AGENTS.md - MonoJot
+﻿# AGENTS.md - MonoJot
 > **Antigravity Agent Memory & Engineering Directive**  
 > *Project*: MonoJot (`NxAdx/monojot`)  
 > *Lead Developer*: Aadarsh Lokhande (`NxAdx`)  
@@ -68,4 +68,24 @@ Every agent working in this repository MUST apply these installed skills:
 > * `.agents/` (rules and skills)
 > * Keystores (`*.keystore`, `*.jks`, `keystore_base64.txt`)
 > * `google-services.json`
+
+---
+
+## Mandatory Ecosystem Directive: Check and Use All Skills & REA
+
+Every AI agent working in this repository MUST observe this mandate:
+
+1. **Check and Execute All Installed Skills**:
+   - Inspect .agents/skills/ and global skill harnesses (~/.agents/skills/, ~/.gemini/skills/) before designing, refactoring, or writing code.
+   - **hallmark** (
+utlope/hallmark): Run /hallmark design guidance, adhere to Floor/Reflex/Finish gates, and verify layout integrity using sloplint.mjs.
+   - **impeccable** (pbakaus/impeccable): Execute deterministic anti-slop scans (impeccable detect) and apply design vocabulary commands (polish, older, quieter, critique, udit, harden, 	ypeset, layout).
+   - **pple-design & ppllama-app-design-skill**: Enforce continuous squircle borders (orderCurve: 'continuous'), tabular numerals (ontVariant: ['tabular-nums']), dual-theme palette tokens, and fluid haptics.
+   - **eact-native-best-practices**: Optimize list rendering with @shopify/flash-list, memoize selectors, and prevent memory leaks.
+   - **expo-router, expo-animation, nimate-expo, expo-module, greenlight, mobile-native, ndroid-updater-patterns**: Follow idiomatic patterns for navigation, 60fps UI-thread worklets, native Kotlin modules, and store compliance.
+
+2. **Actively Leverage REA (Reverse Engineer Anything)**:
+   - Primary REA Engine: Located at D:\Production\rea with reference APKs in D:\Production\rea\apks/.
+   - Before building new complex systems, inspect decompiled reference APKs (Photos.apk, system launchers, productivity apps) for ground-truth schema definitions, MediaStore query projections, notification lifecycle hooks, and native service configurations.
+   - Follow D:\Production\docs\REVERSE_ENGINEERING_PLAYBOOK.md to extract production-tested architectures instead of improvising.
 
