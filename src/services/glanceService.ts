@@ -1,8 +1,8 @@
-import { Platform } from 'react-native';
+import { Platform, Linking, Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 const NOTIFICATION_ID = 'monojot-active-glance';
-const CHANNEL_ID = 'monojot-glance-channel';
+const CHANNEL_ID = 'monojot_live_channel_v2';
 const FALLBACK_CHANNEL_ID = 'expo_notifications_fallback_notification_channel';
 
 // Configure notification behavior for foreground presentation
@@ -18,22 +18,67 @@ Notifications.setNotificationHandler({
 
 export const glanceService = {
   /**
-   * Check and request Android notification permissions (mandatory on Android 13+ / API 33+)
+   * Check if notification permission is currently granted
    */
-  ensurePermissions: async (): Promise<boolean> => {
+  hasPermission: async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
     try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status } = await Notifications.getPermissionsAsync();
+      return status === 'granted';
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Request notification permissions. If interactive=true and system dialog
+   * cannot be shown (already denied), directs user to Android App Settings.
+   */
+  ensurePermissions: async (interactive = false): Promise<boolean> => {
+    if (Platform.OS !== 'android') return false;
+    try {
+      const { status: existingStatus, canAskAgain } = await Notifications.getPermissionsAsync();
       if (existingStatus === 'granted') {
         return true;
       }
-      const { status: newStatus } = await Notifications.requestPermissionsAsync({
-        android: {},
-      });
-      return newStatus === 'granted';
+
+      // Try requesting via system dialog if not permanently denied or explicitly requested
+      if (canAskAgain || interactive) {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync({
+          android: {},
+        });
+        if (newStatus === 'granted') {
+          return true;
+        }
+      }
+
+      // If still not granted and user tapped to enable, guide them directly to Settings
+      if (interactive) {
+        Alert.alert(
+          'Enable Lock Screen Note',
+          'To keep your active note visible on your lock screen and notification shade, please enable notifications in Android Settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings().catch(() => {}),
+            },
+          ]
+        );
+      }
+      return false;
     } catch (e) {
       console.warn('[GlanceService] ensurePermissions failed:', e);
       return false;
+    }
+  },
+
+  /**
+   * Direct shortcut to open Android App Settings
+   */
+  openSettings: async (): Promise<void> => {
+    if (Platform.OS === 'android') {
+      await Linking.openSettings().catch(() => {});
     }
   },
 
@@ -45,7 +90,7 @@ export const glanceService = {
     if (Platform.OS !== 'android') return;
     try {
       const channelConfig: Notifications.NotificationChannelInput = {
-        name: 'Active Thought Glance',
+        name: 'Active Thought',
         description: 'Persistent lock screen card for your active thought',
         importance: Notifications.AndroidImportance.MAX,
         enableVibrate: false,
@@ -55,8 +100,11 @@ export const glanceService = {
         sound: null,
       };
 
-      // Configure both custom channel AND expo fallback channel to guarantee
-      // MAX priority and PUBLIC lockscreen visibility regardless of trigger type
+      // Clean up any legacy channels with obsolete configurations
+      await Notifications.deleteNotificationChannelAsync('monojot-glance-channel').catch(() => {});
+
+      // Configure both fresh custom channel AND expo fallback channel to guarantee
+      // MAX priority and PUBLIC lockscreen visibility regardless of presenter
       await Promise.all([
         Notifications.setNotificationChannelAsync(CHANNEL_ID, channelConfig),
         Notifications.setNotificationChannelAsync(FALLBACK_CHANNEL_ID, channelConfig),
@@ -72,9 +120,6 @@ export const glanceService = {
           },
         },
       ]);
-
-      // Pre-flight check permissions on initial startup
-      await glanceService.ensurePermissions();
     } catch (e) {
       console.warn('[GlanceService] init channel error:', e);
     }
@@ -82,7 +127,7 @@ export const glanceService = {
 
   /**
    * Post or update the sticky ongoing lock screen notification.
-   * Uses trigger: null for immediate presentation without AlarmManager dependency.
+   * Leverages presentNotificationAsync with automatic scheduleNotificationAsync fallback.
    */
   postGlance: async (text: string): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
@@ -93,32 +138,41 @@ export const glanceService = {
       return true;
     }
 
-    const hasPermission = await glanceService.ensurePermissions();
-    if (!hasPermission) {
+    const hasPerm = await glanceService.ensurePermissions(false);
+    if (!hasPerm) {
       console.warn('[GlanceService] Notifications permission not granted');
       return false;
     }
 
+    const content: Notifications.NotificationContentInput = {
+      title: 'MonoJot',
+      body: trimmed,
+      subtitle: 'Active Thought',
+      sticky: true,
+      autoDismiss: false,
+      priority: Notifications.AndroidNotificationPriority.MAX,
+      categoryIdentifier: 'glance_category',
+      color: '#000000',
+      data: { action: 'open_active_jot' },
+    };
+
+    // Attempt direct presentation first (synchronous native notify)
     try {
-      await Notifications.scheduleNotificationAsync({
-        identifier: NOTIFICATION_ID,
-        content: {
-          title: 'MonoJot',
-          body: trimmed,
-          subtitle: 'Active Thought',
-          sticky: true,
-          autoDismiss: false,
-          priority: Notifications.AndroidNotificationPriority.MAX,
-          categoryIdentifier: 'glance_category',
-          color: '#000000',
-          data: { action: 'open_active_jot' },
-        },
-        trigger: null, // CRITICAL: Immediate delivery without SchedulableTrigger exception!
-      });
+      await Notifications.presentNotificationAsync(content, NOTIFICATION_ID);
       return true;
-    } catch (e) {
-      console.warn('[GlanceService] postGlance error:', e);
-      return false;
+    } catch (err1) {
+      console.warn('[GlanceService] presentNotificationAsync failed, attempting schedule fallback:', err1);
+      try {
+        await Notifications.scheduleNotificationAsync({
+          identifier: NOTIFICATION_ID,
+          content,
+          trigger: null,
+        });
+        return true;
+      } catch (err2) {
+        console.warn('[GlanceService] scheduleNotificationAsync fallback failed:', err2);
+        return false;
+      }
     }
   },
 

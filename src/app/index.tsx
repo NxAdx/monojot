@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Modal,
   Switch,
   TouchableWithoutFeedback,
+  AppState,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,7 +35,24 @@ export default function ScratchpadScreen() {
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [glanceFeedback, setGlanceFeedback] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState(true);
   const inputRef = useRef<TextInput>(null);
+
+  const checkPerm = async () => {
+    const granted = await glanceService.hasPermission();
+    setHasPermission(granted);
+    return granted;
+  };
+
+  useEffect(() => {
+    checkPerm();
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkPerm();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const hasText = activeText.trim().length > 0;
 
@@ -65,10 +83,11 @@ export default function ScratchpadScreen() {
     Haptics.selectionAsync();
     const willBeActive = !isGlanceActive;
     if (willBeActive) {
-      const hasPerm = await glanceService.ensurePermissions();
-      if (!hasPerm) {
+      const granted = await glanceService.ensurePermissions(true);
+      setHasPermission(granted);
+      if (!granted) {
         setGlanceFeedback('Permission required');
-        setTimeout(() => setGlanceFeedback(null), 2000);
+        setTimeout(() => setGlanceFeedback(null), 2500);
         return;
       }
     }
@@ -76,7 +95,7 @@ export default function ScratchpadScreen() {
     setGlanceFeedback(willBeActive ? 'Live on Lock Screen' : 'Lock Screen Paused');
     setTimeout(() => {
       setGlanceFeedback(null);
-    }, 1800);
+    }, 2000);
   };
 
   const s = useMemo(
@@ -325,14 +344,20 @@ export default function ScratchpadScreen() {
           selectionColor={colors.ink}
         />
         <View style={s.cardFooter}>
-          {glanceFeedback && (
+          {glanceFeedback ? (
             <Text style={s.glanceFeedbackText}>{glanceFeedback}</Text>
-          )}
+          ) : !hasPermission && hasText ? (
+            <Pressable onPress={() => glanceService.ensurePermissions(true)}>
+              <Text style={[s.glanceFeedbackText, { color: '#FF453A' }]}>
+                Notifications disabled • Tap to enable
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={handleGlancePress}
             hitSlop={12}
             accessibilityLabel={
-              isGlanceActive
+              isGlanceActive && hasPermission
                 ? 'Lock Screen Glance is Active (tap to pause)'
                 : 'Lock Screen Glance is Paused (tap to activate)'
             }
@@ -347,11 +372,11 @@ export default function ScratchpadScreen() {
                 cx={8}
                 cy={8}
                 r={6.5}
-                stroke={isGlanceActive ? colors.ink : colors.strokeDim}
+                stroke={isGlanceActive && hasPermission ? colors.ink : colors.strokeDim}
                 strokeWidth={1.4}
-                strokeDasharray={isGlanceActive ? undefined : '2.5, 2'}
+                strokeDasharray={isGlanceActive && hasPermission ? undefined : '2.5, 2'}
               />
-              {isGlanceActive && (
+              {isGlanceActive && hasPermission && (
                 <Circle cx={8} cy={8} r={3} fill={colors.ink} />
               )}
             </Svg>
@@ -407,18 +432,31 @@ export default function ScratchpadScreen() {
 
                 {/* Lock Screen Glance Switch */}
                 <View style={s.menuRow}>
-                  <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Pressable
+                    style={{ flex: 1, paddingRight: 12 }}
+                    onPress={() => !hasPermission && glanceService.openSettings()}
+                  >
                     <Text style={s.menuLabel}>Lock Screen Glance</Text>
-                    <Text style={s.menuSublabel}>Mirror active note to lock screen</Text>
-                  </View>
+                    <Text
+                      style={[
+                        s.menuSublabel,
+                        !hasPermission && { color: '#FF453A', fontWeight: '500' },
+                      ]}
+                    >
+                      {!hasPermission
+                        ? 'Disabled in Settings • Tap to enable'
+                        : 'Mirror active note to lock screen'}
+                    </Text>
+                  </Pressable>
                   <Switch
-                    value={isGlanceActive}
+                    value={isGlanceActive && hasPermission}
                     onValueChange={async () => {
                       Haptics.selectionAsync();
-                      if (!isGlanceActive) {
-                        await glanceService.ensurePermissions();
+                      const granted = await glanceService.ensurePermissions(true);
+                      setHasPermission(granted);
+                      if (granted) {
+                        toggleGlance();
                       }
-                      toggleGlance();
                     }}
                     trackColor={{ false: colors.strokeDim, true: colors.ink }}
                     thumbColor={isDark ? colors.bg : colors.bgRaised}
