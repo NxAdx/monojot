@@ -50,7 +50,17 @@ MonoJot is an intentional, brutalist-minimalist scratchpad built for **single-th
 
 ---
 
-## 3. Security & Git Offline Invariants
+## 3. Active Skills in `.agents/skills/`
+Every agent working in this repository MUST apply these installed skills:
+1. **`hallmark`**: High-craft design skill and linter that prevents AI slop (`/hallmark`, `sloplint.mjs`, 50 curated materials).
+2. **`impeccable`**: Design vocabulary and 62 deterministic rules catching AI UI anti-patterns (`/impeccable`, `polish`, `bolder`, `critique`, `audit`, `harden`).
+3. **`apple-design`**: WWDC fluid physics, interruptible springs, 1:1 gesture tracking, and optical typography.
+4. **`appllama-app-design-skill`**: Continuous squircle curvature, tabular numerals, dual-mode frame 0 design.
+5. **`react-native-best-practices`**: Callstack performance optimizations, memory leak prevention.
+
+---
+
+## 4. Security & Git Offline Invariants
 > [!CAUTION]
 > The following directories are strictly offline and must **NEVER** be tracked or pushed to Git:
 > * `docs/` (PRD, task lists, specifications)
